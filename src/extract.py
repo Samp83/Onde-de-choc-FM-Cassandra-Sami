@@ -15,7 +15,7 @@ DATA_FOLDER = "./data"
 start_time = time.time()
 
 # Connexion initiale pour créer la base de données
-conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
+conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, autocommit=False)
 cursor = conn.cursor()
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
 cursor.close()
