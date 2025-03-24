@@ -1,0 +1,38 @@
+import pymysql
+
+# Configuration de la connexion MySQL
+DB_HOST = "localhost"
+DB_USER = "root"
+DB_PASSWORD = ""
+DB_NAME = "spotify_data"
+
+def count_total_artist_appearances(artist_name):
+    """
+    Récupère le nombre total d'apparitions des musiques d'un artiste dans toutes les playlists.
+    Compte les doublons et plusieurs apparitions dans une même playlist.
+    """
+    # Connexion à MySQL
+    conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME)
+    cursor = conn.cursor()
+
+    query = """
+        SELECT COUNT(*) 
+        FROM playlist_tracks pt
+        JOIN tracks t ON pt.track_uri = t.track_uri
+        JOIN artists a ON t.artist_uri = a.artist_uri
+        WHERE a.artist_name = %s;
+    """
+
+    cursor.execute(query, (artist_name,))
+    result = cursor.fetchone()[0]
+
+    # Fermer la connexion
+    cursor.close()
+    conn.close()
+
+    print(f"L'artiste '{artist_name}' apparaît un total de {result} fois dans toutes les playlists (doublons inclus).")
+    return result
+
+if __name__ == "__main__":
+    artist_name = input("Entrez le nom de l'artiste : ")
+    count_total_artist_appearances(artist_name)
