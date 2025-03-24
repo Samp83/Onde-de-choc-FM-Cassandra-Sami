@@ -14,9 +14,67 @@ DATA_FOLDER = "./data"
 # Démarrer le compteur de temps
 start_time = time.time()
 
+# Connexion initiale pour vérifier/créer la base de données
+conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD)
+cursor = conn.cursor()
+cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+conn.commit()
+cursor.close()
+conn.close()
+
 # Connexion à la base de données
 conn = pymysql.connect(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, database=DB_NAME, autocommit=False)
 cursor = conn.cursor()
+
+# Création des tables si elles n'existent pas
+tables = [
+    """CREATE TABLE IF NOT EXISTS playlists (
+        pid INT PRIMARY KEY,
+        name VARCHAR(191) NOT NULL,
+        collaborative BOOLEAN,
+        modified_at INT,
+        num_tracks INT,
+        num_albums INT,
+        num_followers INT,
+        num_edits INT,
+        duration_ms BIGINT,
+        num_artists INT
+    );""",
+    
+    """CREATE TABLE IF NOT EXISTS artists (
+        artist_uri VARCHAR(191) PRIMARY KEY,
+        artist_name VARCHAR(191) NOT NULL
+    );""",
+    
+    """CREATE TABLE IF NOT EXISTS albums (
+        album_uri VARCHAR(191) PRIMARY KEY,
+        album_name VARCHAR(191) NOT NULL
+    );""",
+    
+    """CREATE TABLE IF NOT EXISTS tracks (
+        track_uri VARCHAR(191) PRIMARY KEY,
+        artist_uri VARCHAR(191) NOT NULL,
+        track_name VARCHAR(191) NOT NULL,
+        album_uri VARCHAR(191),
+        duration_ms BIGINT,
+        FOREIGN KEY (artist_uri) REFERENCES artists(artist_uri),
+        FOREIGN KEY (album_uri) REFERENCES albums(album_uri)
+    );""",
+    
+    """CREATE TABLE IF NOT EXISTS playlist_tracks (
+        pid INT,
+        track_uri VARCHAR(191),
+        pos INT,
+        PRIMARY KEY (pid, track_uri),
+        FOREIGN KEY (pid) REFERENCES playlists(pid),
+        FOREIGN KEY (track_uri) REFERENCES tracks(track_uri)
+    );"""
+]
+
+for table in tables:
+    cursor.execute(table)
+
+conn.commit()
 
 # Désactivation temporaire des contraintes pour optimisation
 cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
@@ -111,14 +169,7 @@ batch_insert("""
 """, playlist_tracks_data)
 
 # **Réactivation des index et clés**
-cursor.execute("ALTER TABLE playlists ENABLE KEYS;")
-cursor.execute("ALTER TABLE artists ENABLE KEYS;")
-cursor.execute("ALTER TABLE albums ENABLE KEYS;")
-cursor.execute("ALTER TABLE tracks ENABLE KEYS;")
-cursor.execute("ALTER TABLE playlist_tracks ENABLE KEYS;")
 cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
-
-# Commit final et fermeture
 conn.commit()
 cursor.close()
 conn.close()
